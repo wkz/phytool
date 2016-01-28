@@ -17,6 +17,9 @@
 
 #include "phytool.h"
 
+extern char *__progname;
+
+
 static int __phy_op(const struct loc *loc, uint16_t *val, int cmd)
 {
 	static int sd = -1;
@@ -211,17 +214,39 @@ static struct printer printer[] = {
 	{ .name = NULL }
 };
 
+static int usage(int code)
+{
+	printf("\nUsage:\n"
+	       "\t%s read  iface/phy/reg\n"
+	       "\t%s write iface/phy/reg val\n"
+	       "\t%s print iface/phy[/reg]\n"
+	       "\nExamples:\n"
+	       "\t%s read  eth0/0/4\n"
+	       "\t%s read  eth1-2/1:0x10/4\n"
+	       "\t%s print eth1-2/1:0x10\n"
+	       "\n"
+	       "The PHY argument is either in clause-22 direct adressing syntax, or in\n"
+	       "clause-45 syntax `port:dev`. Where `port` is the MDIO port address and\n"
+	       "`dev` is the device's PHY address (0x1-0xA), MAC register (0x10-0x1A),\n"
+	       "the global register (0x1B), or the global2 register (0x1C).\n\n"
+	       "Some devices have a SERDES specific page on `dev` address 0xF.\n\n"
+	       "Bug report address: https://github.com/wkz/phytool/issues\n\n",
+	       __progname, __progname, __progname, __progname, __progname, __progname);
+
+	return code;
+}
+
 int main(int argc, char **argv)
 {
-	char *bin = basename(argv[0]);
 	struct printer *p;
 
 	if (argc < 2)
-		return 1;
+		return usage(1);
 
-	for (p = printer; p->name; p++)
-		if (!strcmp(bin, p->name))
+	for (p = printer; p->name; p++) {
+		if (!strcmp(__progname, p->name))
 			break;
+	}
 
 	if (!p->name)
 		p = printer;
@@ -234,5 +259,5 @@ int main(int argc, char **argv)
 		return phytool_print(p->print, argc - 2, &argv[2]);
 
 	fprintf(stderr, "error: unknown command \"%s\"\n", argv[1]);
-	return 1;
+	return usage(1);
 }
