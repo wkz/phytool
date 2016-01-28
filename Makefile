@@ -1,5 +1,8 @@
 .PHONY: all clean install dist
 
+# Top directory for building complete system, fall back to this directory
+ROOTDIR    ?= $(shell pwd)
+
 VERSION = 1.0-beta1
 NAME    = phytool
 PKG     = $(NAME)-$(VERSION)
@@ -7,18 +10,20 @@ ARCHIVE = $(PKG).tar.xz
 APPLETS = mv6tool
 
 PREFIX ?= /usr/local/
-LIBS    = 
-CC      = gcc
-CFLAGS  = -g -Wall -Wextra
+LDLIBS  = 
+CFLAGS  = -W -Wall -Wextra
+CFLAGS += -g
 
 objs = $(patsubst %.c, %.o, $(wildcard *.c))
 hdrs = $(wildcard *.h)
 
 %.o: %.c $(hdrs) Makefile
+	@printf "  CC      $(subst $(ROOTDIR)/,,$(shell pwd)/$@)\n"
 	@$(CROSS_COMPILE)$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
 
 phytool: $(objs)
-	@$(CROSS_COMPILE)$(CC) $(objs) -Wall $(LIBS) -o $@
+	@printf "  CC      $(subst $(ROOTDIR)/,,$(shell pwd)/$@)\n"
+	@$(CROSS_COMPILE)$(CC) $(LDLIBS) -o $@ $^
 
 all: phytool
 
