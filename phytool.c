@@ -227,7 +227,7 @@ static int usage(int code)
 	       "\n"
 	       "The PHY argument is either in clause-22 direct adressing syntax, or in\n"
 	       "clause-45 syntax `port:dev`. Where `port` is the MDIO port address and\n"
-	       "`dev` is the device's PHY address (0x1-0xA), MAC register (0x10-0x1A),\n"
+	       "`dev` is the device's PHY address (0x0-0xA), MAC register (0x10-0x1A),\n"
 	       "the global register (0x1B), or the global2 register (0x1C).\n\n"
 	       "Some devices have a SERDES specific page on `dev` address 0xF.\n\n"
 	       "Bug report address: https://github.com/wkz/phytool/issues\n\n",
