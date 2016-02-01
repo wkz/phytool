@@ -3,27 +3,26 @@
 # Top directory for building complete system, fall back to this directory
 ROOTDIR    ?= $(shell pwd)
 
-VERSION = 1.0-beta1
+VERSION = 1-beta1
 NAME    = phytool
 PKG     = $(NAME)-$(VERSION)
 ARCHIVE = $(PKG).tar.xz
 APPLETS = mv6tool
 
 PREFIX ?= /usr/local/
+CFLAGS ?= -Wall -Wextra -Werror
 LDLIBS  = 
-CFLAGS  = -W -Wall -Wextra
-CFLAGS += -g
 
 objs = $(patsubst %.c, %.o, $(wildcard *.c))
 hdrs = $(wildcard *.h)
 
 %.o: %.c $(hdrs) Makefile
 	@printf "  CC      $(subst $(ROOTDIR)/,,$(shell pwd)/$@)\n"
-	@$(CROSS_COMPILE)$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 phytool: $(objs)
 	@printf "  CC      $(subst $(ROOTDIR)/,,$(shell pwd)/$@)\n"
-	@$(CROSS_COMPILE)$(CC) $(LDLIBS) -o $@ $^
+	@$(CC) $(LDLIBS) -o $@ $^
 
 all: phytool
 
