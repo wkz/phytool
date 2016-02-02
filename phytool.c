@@ -14,6 +14,7 @@
  * along with phytool.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glob.h>
 #include <errno.h>
 #include <libgen.h>
 #include <stdint.h>
@@ -34,6 +35,12 @@
 #include "phytool.h"
 
 extern char *__progname;
+
+struct applet {
+	const char *name;
+	int (*parse_loc)(char *text, struct loc *loc, int strict);
+	int (*print)(const struct loc *loc, int indent);
+};
 
 
 static int __phy_op(const struct loc *loc, uint16_t *val, int cmd)
@@ -127,39 +134,204 @@ static int parse_phy_id(char *text, uint16_t *phy_id)
 	return 0;
 }
 
-static int parse_loc(char *text, struct loc *loc, int strict)
+static int sysfs_readu(const char *path, int *result)
 {
-	char *tok = strtok(text, "/");
-	unsigned long reg_in;
+	FILE *fp;
+	char line[24];
 
-	if (!tok)
-		goto err_fmt;
+	fp = fopen(path, "r");
+	if (!fp)
+		return -EIO;
 
-	strncpy(loc->ifnam, tok, IFNAMSIZ);
+	if (!fgets(line, sizeof(line), fp)) {
+		fclose(fp);
+		return -EIO;
+	}
 
-	tok = strtok(NULL, "/");
-	if (!tok)
-		goto err_fmt;
-
-	if (parse_phy_id(tok, &loc->phy_id))
-		goto err_fmt;
-
-	tok = strtok(NULL, "/");
-	if (tok)
-		reg_in = strtoul(tok, NULL, 0);
-	else if (!strict)
-		reg_in = REG_SUMMARY;
-	else
-		goto err_fmt;
-
-	loc->reg = reg_in;
-	return 0;
-err_fmt:
-	fprintf(stderr, "error: bad location format\n");
-	return 1;
+	/* limit to base ten here, output is zero padded */
+	*result = strtol(line, NULL, 10);
+	fclose(fp);
+	return (*result >= 0) ? 0 : -EINVAL;
 }
 
-static int phytool_read(int argc, char **argv)
+static int parse_switch_id(const char *dev, int *swid, char *ifnam)
+{
+	glob_t paths;
+	char *src;
+	int cmp, err, i;
+
+	*swid = strtol(dev, NULL, 0);
+	if (*swid < 0)
+		return -EINVAL;
+
+	err = glob("/sys/class/net/*/phys_switch_id", 0, NULL, &paths);
+	if (err)
+		return -ENOENT;
+
+	err = -ENOENT;
+	for (i = 0; i < (int)paths.gl_pathc; i++) {
+		err = sysfs_readu(paths.gl_pathv[i], &cmp);
+		if (err)
+			continue;
+
+		if (cmp == *swid) {
+			err = 0;
+			break;
+		}
+	}
+
+	if (!err) {
+		src = &paths.gl_pathv[i][strlen("/sys/class/net/")];
+		strncpy(ifnam, src, IFNAMSIZ - 1);
+		strtok(ifnam, "/");
+	}
+
+	globfree(&paths);
+	return err;
+}
+
+static int parse_switch_addr(const char *addr, int *swaddr)
+{
+	const char *num;
+	int offs;
+
+	if (strstr(addr, "phy") == addr) {
+		num = &addr[3];
+		offs = 0x0;
+	} else if (strstr(addr, "port") == addr) {
+		num = &addr[4];
+		offs = 0x10;
+	} else if (!strcmp(addr, "serdes")) {
+		*swaddr = 0xf;
+		return 0;
+	} else if (strstr(addr, "global") == addr) {
+		num = &addr[6];
+		offs = 0x1a;
+	} else {
+		num = addr;
+		offs = 0x0;
+	}
+
+	*swaddr = strtol(num, NULL, 0);
+	if (*swaddr < 0)
+		return -EINVAL;
+
+	*swaddr += offs;
+	return 0;
+}
+
+static int loc_segments(char *text, char **a, char **b, char **c)
+{
+	*a = strtok(text, "/");
+	if (!*a)
+		return 0;
+
+	*b = strtok(NULL, "/");
+	if (!*b)
+		return 1;
+
+	*c = strtok(NULL, "/");
+	if (!*c)
+		return 2;
+
+	return 3;
+}
+
+static int phytool_parse_loc_segs(char *dev, char *addr, char *reg,
+				  struct loc *loc)
+{
+	int err;
+
+	strncpy(loc->ifnam, dev, IFNAMSIZ - 1);
+
+	err = parse_phy_id(addr, &loc->phy_id);
+	if (err)
+		return err;
+
+	loc->reg = reg ? strtoul(reg, NULL, 0) : REG_SUMMARY;
+	return 0;
+}
+
+static int phytool_parse_loc(char *text, struct loc *loc, int strict)
+{
+	char *dev = NULL, *addr = NULL, *reg = NULL;
+	unsigned long reg_in;
+	int segs;
+
+	segs = loc_segments(text, &dev, &addr, &reg);
+	if (segs < (strict ? 3 : 2))
+		return -EINVAL;
+
+	return phytool_parse_loc_segs(dev, addr, reg, loc);
+}
+
+static int mv6tool_parse_loc_if(char *dev, char *addr, char *reg,
+				struct loc *loc)
+{
+	char *path;
+	int err, phy_port, phy_dev;
+
+	strncpy(loc->ifnam, dev, IFNAMSIZ - 1);
+
+	asprintf(&path, "/sys/class/net/%s/phys_switch_id", dev);
+	err = sysfs_readu(path, &phy_dev);
+	free(path);
+	if (err)
+		return -ENOSYS;
+
+	asprintf(&path, "/sys/class/net/%s/phys_port_id", dev);
+	err = sysfs_readu(path, &phy_port);
+	free(path);
+	if (err)
+		return -ENOSYS;
+
+	if (!addr || !strcmp(addr, "port"))
+		phy_port += 0x10;
+	else if (!strcmp(addr, "phy"))
+		phy_port += 0;
+	else
+		return -EINVAL;
+
+	loc->phy_id = mdio_phy_id_c45(phy_port, phy_dev);
+	loc->reg = reg ? strtoul(reg, NULL, 0) : REG_SUMMARY;
+	return 0;
+}
+
+static int mv6tool_parse_loc(char *text, struct loc *loc, int strict)
+{
+	char *dev = NULL, *addr = NULL, *reg = NULL;
+	int phy_port, phy_dev;
+	int err, segs;
+
+	segs = loc_segments(text, &dev, &addr, &reg);
+	if (segs < (strict ? 3 : 1))
+		return -EINVAL;
+
+	if (if_nametoindex(dev)) {
+		err = mv6tool_parse_loc_if(dev, addr, reg, loc);
+		if (!err)
+			return 0;
+	}
+
+	if (segs < (strict ? 3 : 2))
+		return -EINVAL;
+
+	err = parse_switch_id(dev, &phy_dev, loc->ifnam);
+	if (err)
+		goto fallback;
+
+	err = parse_switch_addr(addr, &phy_port);
+	if (err)
+		goto fallback;
+
+	loc->phy_id = mdio_phy_id_c45(phy_port, phy_dev);
+	loc->reg = reg ? strtoul(reg, NULL, 0) : REG_SUMMARY;
+	return 0;
+fallback:
+	return phytool_parse_loc_segs(dev, addr, reg, loc);
+}
+
+static int phytool_read(struct applet *a, int argc, char **argv)
 {
 	struct loc loc;
 	int val;
@@ -167,8 +339,10 @@ static int phytool_read(int argc, char **argv)
 	if (!argc)
 		return 1;
 
-	if (parse_loc(argv[0], &loc, 1))
+	if (a->parse_loc(argv[0], &loc, 1)) {
+		fprintf(stderr, "error: bad location format\n");
 		return 1;
+	}
 
 	val = phy_read (&loc);
 	if (val < 0)
@@ -178,7 +352,7 @@ static int phytool_read(int argc, char **argv)
 	return 0;
 }
 
-static int phytool_write(int argc, char **argv)
+static int phytool_write(struct applet *a, int argc, char **argv)
 {
 	struct loc loc;
 	unsigned long val;
@@ -187,8 +361,10 @@ static int phytool_write(int argc, char **argv)
 	if (argc < 2)
 		return 1;
 
-	if (parse_loc(argv[0], &loc, 1))
+	if (a->parse_loc(argv[0], &loc, 1)) {
+		fprintf(stderr, "error: bad location format\n");
 		return 1;
+	}
 
 	val = strtoul(argv[1], NULL, 0);
 
@@ -199,8 +375,7 @@ static int phytool_write(int argc, char **argv)
 	return 0;
 }
 
-static int phytool_print(int (*print)(const struct loc *loc, int indent),
-			 int argc, char **argv)
+static int phytool_print(struct applet *a, int argc, char **argv)
 {
 	struct loc loc;
 	int err;
@@ -208,24 +383,21 @@ static int phytool_print(int (*print)(const struct loc *loc, int indent),
 	if (!argc)
 		return 1;
 
-	if (parse_loc(argv[0], &loc, 0))
+	if (a->parse_loc(argv[0], &loc, 0)) {
+		fprintf(stderr, "error: bad location format\n");
 		return 1;
+	}
 
-	err = print(&loc, 0);
+	err = a->print(&loc, 0);
 	if (err)
 		return 1;
 	
 	return 0;
 }
 
-struct printer {
-	const char *name;
-	int (*print)(const struct loc *loc, int indent);
-};
-
-static struct printer printer[] = {
-	{ .name = "phytool", .print = print_phytool },
-	{ .name = "mv6tool", .print = print_mv6tool },
+static struct applet applets[] = {
+	{ .name = "phytool", .parse_loc = phytool_parse_loc, .print = print_phytool },
+	{ .name = "mv6tool", .parse_loc = mv6tool_parse_loc, .print = print_mv6tool },
 
 	{ .name = NULL }
 };
@@ -254,25 +426,27 @@ static int usage(int code)
 
 int main(int argc, char **argv)
 {
-	struct printer *p;
+	struct applet *a;
 
 	if (argc < 2)
 		return usage(1);
 
-	for (p = printer; p->name; p++) {
-		if (!strcmp(__progname, p->name))
+	for (a = applets; a->name; a++) {
+		if (!strcmp(__progname, a->name))
 			break;
 	}
 
-	if (!p->name)
-		p = printer;
+	if (!a->name)
+		a = applets;
 
 	if (!strcmp(argv[1], "read"))
-		return phytool_read(argc - 2, &argv[2]);
+		return phytool_read(a, argc - 2, &argv[2]);
 	else if (!strcmp(argv[1], "write"))
-		return phytool_write(argc - 2, &argv[2]);
+		return phytool_write(a, argc - 2, &argv[2]);
 	else if (!strcmp(argv[1], "print"))
-		return phytool_print(p->print, argc - 2, &argv[2]);
+		return phytool_print(a, argc - 2, &argv[2]);
+	else
+		return phytool_print(a, argc - 1, &argv[1]);
 
 	fprintf(stderr, "error: unknown command \"%s\"\n", argv[1]);
 	return usage(1);
