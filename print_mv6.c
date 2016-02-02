@@ -91,7 +91,7 @@ static void mv6_port_ps(uint16_t val, int indent)
 
 	printf("%*smv6: reg:PS(0x00) val:%#.4x\n", indent, "", val);
 
-	printf("%*sflags: ", indent + INDENT, "");
+	print_attr_name("flags", indent + INDENT);
 	print_bool("pause-en", val & 0x8000);
 	putchar(' ');
 
@@ -113,9 +113,10 @@ static void mv6_port_ps(uint16_t val, int indent)
 	print_bool("flow-ctrl", val & 0x0010);
 	putchar('\n');
 
-	printf("%*sspeed: %d-%s\n", indent + INDENT, "",
-	       speed, (val & 0x0400)? "full" : "half");
-	printf("%*smode: %#x\n", indent + INDENT, "", val & 0xf);
+	print_attr_name("speed", indent + INDENT);
+	printf("%d-%s\n", speed, (val & 0x0400)? "full" : "half");
+	print_attr_name("mode", indent + INDENT);
+	printf("%#x\n", val & 0xf);
 }
 
 static const char *mv6_egress_mode_str[] = {
@@ -165,7 +166,7 @@ static void mv6_port_pc(uint16_t val, int indent)
 
 	printf("%*smv6: reg:PC(0x04) val:%#.4x\n", indent, "", val);
 
-	printf("%*sflags: ", indent + INDENT, "");
+	print_attr_name("flags", indent + INDENT);
 	print_bool("router-header", val & 0x0800);
 	putchar(' ');
 
@@ -178,20 +179,20 @@ static void mv6_port_pc(uint16_t val, int indent)
 	print_bool("tag-if-both", val & 0x0040);
 	putchar('\n');
 
-	printf("%*segress-mode: %s\n", indent + INDENT, "",
-	       mv6_egress_mode_str[(val & 0x3000) >> 12]);
+	print_attr_name("egress-mode", indent + INDENT);
+	puts(mv6_egress_mode_str[(val & 0x3000) >> 12]);
 
-	printf("%*sframe-mode: %s\n", indent + INDENT, "",
-	       mv6_frame_mode_str[(val & 0x0300) >> 8]);
+	print_attr_name("frame-mode", indent + INDENT);
+	puts(mv6_frame_mode_str[(val & 0x0300) >> 8]);
 
-	printf("%*sinitial-pri: %s\n", indent + INDENT, "",
-	       mv6_initial_pri_str[(val & 0x0030) >> 4]);
+	print_attr_name("initial-pri", indent + INDENT);
+	puts(mv6_initial_pri_str[(val & 0x0030) >> 4]);
 
-	printf("%*segress-floods: %s\n", indent + INDENT, "",
-	       mv6_egress_floods_str[(val & 0x000c) >> 2]);
+	print_attr_name("egress-floods", indent + INDENT);
+	puts(mv6_egress_floods_str[(val & 0x000c) >> 2]);
 
-	printf("%*sport-state: %s\n", indent + INDENT, "",
-	       mv6_port_state_str[(val & 0x0003)]);
+	print_attr_name("port-state", indent + INDENT);
+	puts(mv6_port_state_str[(val & 0x0003)]);
 }
 
 struct mv6_port_desc {
@@ -247,7 +248,6 @@ int mv6_port_one(const struct loc *loc, int indent, struct mv6_port_desc *pd)
 	else
 		pd->printer[loc->reg](val, indent);
 
-	print_bit_array(val, indent + INDENT);
 	return 0;
 }
 

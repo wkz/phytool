@@ -46,7 +46,7 @@ int      phy_read (const struct loc *loc);
 int      phy_write(const struct loc *loc, uint16_t val);
 uint32_t phy_id   (const struct loc *loc);
 
-void print_bit_array(uint16_t val, int indent);
+void print_attr_name(const char *name, int indent);
 void print_bool(const char *name, int on);
 
 int print_phytool(const struct loc *loc, int indent);

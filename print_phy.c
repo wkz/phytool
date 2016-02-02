@@ -22,36 +22,27 @@
 
 #include "phytool.h"
 
-const char hi[] = { 0xe2, 0x97, 0x89, 0x00 };
-const char lo[] = { 0xe2, 0x97, 0x8b, 0x00 };
-
-void print_bit_array(uint16_t val, int indent)
-{
-	int i;
-
-	printf("%*s", indent, "");
-
-	for (i = 15; i >= 0; i--) {
-		fputs((val & (1 << i))? hi : lo, stdout);
-
-		if (i)
-			fputs((i % 4 == 0)? "  " : " ", stdout);
-	}
-
-	printf("\n%*s   %x        %x        %x        %x\n", indent, "",
-	       (val & 0xf000) >> 12, (val & 0x0f00) >> 8,
-	       (val & 0x00f0) >>  4, (val & 0x000f));
-}
-
 void print_bool(const char *name, int on)
 {
 	if (on)
-		fputs("\e[7m", stdout);
+		fputs("\e[1m+", stdout);
+	else
+		fputs("-", stdout);
 
 	fputs(name, stdout);
 
 	if (on)
 		fputs("\e[0m", stdout);
+}
+
+void print_attr_name(const char *name, int indent)
+{
+	int start, end, len;
+
+	printf("%*s%n%s:%n", indent, "", &start, name, &end);
+
+	len = end - start;
+	printf("%*s", (len > 16) ? 0 : 16 - len, "");
 }
 
 static void ieee_bmcr(uint16_t val, int indent)
@@ -65,7 +56,7 @@ static void ieee_bmcr(uint16_t val, int indent)
 
 	printf("%*sieee-phy: reg:BMCR(0x00) val:%#.4x\n", indent, "", val);
 
-	printf("%*sflags: ", indent + INDENT, "");
+	print_attr_name("flags", indent + INDENT);
 	print_bool("reset", val & BMCR_RESET);
 	putchar(' ');
 
@@ -87,15 +78,15 @@ static void ieee_bmcr(uint16_t val, int indent)
 	print_bool("collision-test", val & BMCR_CTST);
 	putchar('\n');
 
-	printf("%*sspeed: %d-%s\n", indent + INDENT, "", speed,
-	       (val & BMCR_FULLDPLX) ? "full" : "half");
+	print_attr_name("speed", indent + INDENT);
+	printf("%d-%s\n", speed, (val & BMCR_FULLDPLX) ? "full" : "half");
 }
 
 static void ieee_bmsr(uint16_t val, int indent)
 {
 	printf("%*sieee-phy: reg:BMSR(0x01) val:%#.4x\n", indent, "", val);
 
-	printf("%*slink capabilities: ", indent + INDENT, "");
+	print_attr_name("capabilities", indent + INDENT);
 	print_bool("100-b4", val & BMSR_100BASE4);
 	putchar(' ');
 
@@ -117,7 +108,7 @@ static void ieee_bmsr(uint16_t val, int indent)
 	print_bool("100-t2-h", val & BMSR_100HALF2);
 	putchar('\n');
 
-	printf("%*sflags: ", indent + INDENT, "");
+	print_attr_name("flags", indent + INDENT);
 	print_bool("ext-status", val & BMSR_ESTATEN);
 	putchar(' ');
 
@@ -158,7 +149,6 @@ static int ieee_one(const struct loc *loc, int indent)
 	else
 		ieee_reg_printers[loc->reg](val, indent);
 
-	print_bit_array(val, indent + INDENT);
 	return 0;
 }
 
