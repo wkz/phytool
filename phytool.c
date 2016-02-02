@@ -38,6 +38,7 @@ extern char *__progname;
 
 struct applet {
 	const char *name;
+	int (*usage)(int code);
 	int (*parse_loc)(char *text, struct loc *loc, int strict);
 	int (*print)(const struct loc *loc, int indent);
 };
@@ -395,41 +396,90 @@ static int phytool_print(struct applet *a, int argc, char **argv)
 	return 0;
 }
 
-static struct applet applets[] = {
-	{ .name = "phytool", .parse_loc = phytool_parse_loc, .print = print_phytool },
-	{ .name = "mv6tool", .parse_loc = mv6tool_parse_loc, .print = print_mv6tool },
-
-	{ .name = NULL }
-};
-
-static int usage(int code)
+static int phytool_usage(int code)
 {
-	printf("\nUsage:\n"
-	       "\t%s read  iface/phy/reg\n"
-	       "\t%s write iface/phy/reg val\n"
-	       "\t%s print iface/phy[/reg]\n"
-	       "\nExamples:\n"
-	       "\t%s read  eth0/0/4\n"
-	       "\t%s read  eth1-2/1:0x10/4\n"
-	       "\t%s print eth1-2/1:0x10\n"
+	printf("Usage: %s read  IFACE/ADDR/REG\n"
+	       "       %s write IFACE/ADDR/REG <0-0xffff>\n"
+	       "       %s print IFACE/ADDR[/REG]\n"
+	       "where\n"
 	       "\n"
-	       "The PHY argument is either in clause-22 direct adressing syntax, or in\n"
-	       "clause-45 syntax `port:dev`. Where `port` is the MDIO port address and\n"
-	       "`dev` is the device's PHY address (0x0-0xA), MAC register (0x10-0x1A),\n"
-	       "the global register (0x1B), or the global2 register (0x1C).\n\n"
-	       "Some devices have a SERDES specific page on `dev` address 0xF.\n\n"
-	       "Bug report address: https://github.com/wkz/phytool/issues\n\n",
+	       "ADDR := C22 | C45\n"
+	       "C22  := <0-0x1f>\n"
+	       "C45  := <0-0x1f>:<0-0x1f>\n"
+	       "REG  := <0-0x1f>\n"
+	       "\n"
+	       "Examples:\n"
+	       "       %s read  eth0/0:3/1\n"
+	       "       %s write eth0/0xa/0 0x1140\n"
+	       "       %s print eth0/0x1c\n"
+	       "\n"
+	       "Note: Not all MDIO drivers support the `port:device` Clause 45 address\n"
+	       "format.\n"
+	       "\n"
+	       "The `read` and `write` commands are simple register level\n"
+	       "accessors. The `print` command will pretty-print a register. When\n"
+	       "using the `print` command, the register is optional. If left out, the\n"
+	       "most common registers will be shown.\n"
+	       "\n"
+	       "Bug report address: https://github.com/wkz/phytool/issues\n"
+	       "\n",
+	       __progname, __progname, __progname, __progname, __progname, __progname);
+	return code;
+}
+
+static int mv6tool_usage(int code)
+{
+	printf("Usage: %s read  LOCATION/REG\n"
+	       "       %s write LOCATION/REG <0-0xffff>\n"
+	       "       %s print LOCATION[/REG]\n"
+	       "       %s print IFACE\n"
+	       "where\n"
+	       "\n"
+	       "LOCATION := IFACE/<port|phy> | DEV/<ADDR|phyN|portN|globalG|serdes>\n"
+	       "\n"
+	       "DEV  := <0-0x1f>\n"
+	       "ADDR := <0-0x1f>\n"
+	       "N    := <0-0xa>\n"
+	       "G    := <0-2>\n"
+	       "REG  := <0-0x1f>\n"
+	       "\n"
+	       "Examples:\n"
+	       "       %s read  cpu0/port/0\n"
+	       "       %s write 1/global1/2   0x1337\n"
+	       "       %s print eth2-1\n"
+	       "\n"
+	       "The `read` and `write` commands are simple register level\n"
+	       "accessors. The `print` command will pretty-print a register. When\n"
+	       "using the `print` command, the register is optional. If left out, the\n"
+	       "most common registers will be shown.\n"
+	       "\n"
+	       "Bug report address: https://github.com/wkz/phytool/issues\n"
+	       "\n",
 	       __progname, __progname, __progname, __progname, __progname, __progname);
 
 	return code;
 }
 
+static struct applet applets[] = {
+	{
+		.name = "phytool",
+		.usage = phytool_usage,
+		.parse_loc = phytool_parse_loc,
+		.print = print_phytool
+	},
+	{
+		.name = "mv6tool",
+		.usage = mv6tool_usage,
+		.parse_loc = mv6tool_parse_loc,
+		.print = print_mv6tool
+	},
+
+	{ .name = NULL }
+};
+
 int main(int argc, char **argv)
 {
 	struct applet *a;
-
-	if (argc < 2)
-		return usage(1);
 
 	for (a = applets; a->name; a++) {
 		if (!strcmp(__progname, a->name))
@@ -438,6 +488,9 @@ int main(int argc, char **argv)
 
 	if (!a->name)
 		a = applets;
+
+	if (argc < 2)
+		return a->usage(1);
 
 	if (!strcmp(argv[1], "read"))
 		return phytool_read(a, argc - 2, &argv[2]);
@@ -449,5 +502,5 @@ int main(int argc, char **argv)
 		return phytool_print(a, argc - 1, &argv[1]);
 
 	fprintf(stderr, "error: unknown command \"%s\"\n", argv[1]);
-	return usage(1);
+	return a->usage(1);
 }
