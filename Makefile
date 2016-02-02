@@ -3,7 +3,7 @@
 # Top directory for building complete system, fall back to this directory
 ROOTDIR    ?= $(shell pwd)
 
-VERSION = 1-beta1
+VERSION = 1
 NAME    = phytool
 PKG     = $(NAME)-$(VERSION)
 ARCHIVE = $(PKG).tar.xz
