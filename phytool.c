@@ -14,6 +14,8 @@
  * along with phytool.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <glob.h>
 #include <errno.h>
 #include <libgen.h>
@@ -256,7 +258,6 @@ static int phytool_parse_loc_segs(char *dev, char *addr, char *reg,
 static int phytool_parse_loc(char *text, struct loc *loc, int strict)
 {
 	char *dev = NULL, *addr = NULL, *reg = NULL;
-	unsigned long reg_in;
 	int segs;
 
 	segs = loc_segments(text, &dev, &addr, &reg);
@@ -455,7 +456,7 @@ static int mv6tool_usage(int code)
 	       "\n"
 	       "Bug report address: https://github.com/wkz/phytool/issues\n"
 	       "\n",
-	       __progname, __progname, __progname, __progname, __progname, __progname);
+	       __progname, __progname, __progname, __progname, __progname, __progname, __progname);
 
 	return code;
 }
