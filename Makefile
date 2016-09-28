@@ -22,7 +22,7 @@ hdrs = $(wildcard *.h)
 
 phytool: $(objs)
 	@printf "  CC      $(subst $(ROOTDIR)/,,$(shell pwd)/$@)\n"
-	@$(CC) $(LDLIBS) -o $@ $^
+	@$(CC) $(LDFLAGS) $(LDLIBS) -o $@ $^
 
 all: phytool
 
