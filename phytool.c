@@ -152,7 +152,7 @@ static int sysfs_readu(const char *path, int *result)
 	}
 
 	/* limit to base ten here, output is zero padded */
-	*result = strtol(line, NULL, 10);
+	*result = strtol(line, NULL, 16);
 	fclose(fp);
 	return (*result >= 0) ? 0 : -EINVAL;
 }
@@ -283,6 +283,7 @@ static int mv6tool_parse_loc_if(char *dev, char *addr, char *reg,
 
 	asprintf(&path, "/sys/class/net/%s/phys_port_id", dev);
 	err = sysfs_readu(path, &phy_port);
+
 	free(path);
 	if (err)
 		return -ENOSYS;
