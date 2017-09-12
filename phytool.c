@@ -117,10 +117,10 @@ static int parse_phy_id(char *text, uint16_t *phy_id)
 	unsigned long port, dev;
 	char *end;
 
-	dev = strtoul(text, &end, 0);
+	port = strtoul(text, &end, 0);
 	if (!end[0]) {
 		/* simple phy address */
-		*phy_id = dev;
+		*phy_id = port;
 		return 0;
 	}
 
@@ -129,7 +129,7 @@ static int parse_phy_id(char *text, uint16_t *phy_id)
 		return 1;
 	}
 
-	port = strtoul(end + 1, &end, 0);
+	dev = strtoul(end + 1, &end, 0);
 	if (end[0])
 		return 1;
 
@@ -276,21 +276,21 @@ static int mv6tool_parse_loc_if(char *dev, char *addr, char *reg,
 	strncpy(loc->ifnam, dev, IFNAMSIZ - 1);
 
 	asprintf(&path, "/sys/class/net/%s/phys_switch_id", dev);
-	err = sysfs_readu(path, &phy_dev);
-	free(path);
-	if (err)
-		return -ENOSYS;
-
-	asprintf(&path, "/sys/class/net/%s/phys_port_id", dev);
 	err = sysfs_readu(path, &phy_port);
 	free(path);
 	if (err)
 		return -ENOSYS;
 
+	asprintf(&path, "/sys/class/net/%s/phys_port_id", dev);
+	err = sysfs_readu(path, &phy_dev);
+	free(path);
+	if (err)
+		return -ENOSYS;
+
 	if (!addr || !strcmp(addr, "port"))
-		phy_port += 0x10;
+		phy_dev += 0x10;
 	else if (!strcmp(addr, "phy"))
-		phy_port += 0;
+		phy_dev += 0;
 	else
 		return -EINVAL;
 
@@ -318,11 +318,11 @@ static int mv6tool_parse_loc(char *text, struct loc *loc, int strict)
 	if (segs < (strict ? 3 : 2))
 		return -EINVAL;
 
-	err = parse_switch_id(dev, &phy_dev, loc->ifnam);
+	err = parse_switch_id(dev, &phy_port, loc->ifnam);
 	if (err)
 		goto fallback;
 
-	err = parse_switch_addr(addr, &phy_port);
+	err = parse_switch_addr(addr, &phy_dev);
 	if (err)
 		goto fallback;
 

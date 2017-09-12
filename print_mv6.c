@@ -43,40 +43,40 @@ static const char *mv6_model_str(uint16_t id)
 	return str;
 }
 
-static const char *mv6_port_str(uint16_t port)
+static const char *mv6_dev_str(uint16_t dev)
 {
 	static char str[32];
 
-	if (port < 0xf)
-		snprintf(str, sizeof(str), "phy:%d", port);
-	else if (port == 0xf)
+	if (dev < 0xf)
+		snprintf(str, sizeof(str), "phy:%d", dev);
+	else if (dev == 0xf)
 		return "serdes";
-	else if (port < 0x1b)
-		snprintf(str, sizeof(str), "port:%d", port - 0x10);
-	else if (port == 0x1b)
+	else if (dev)
+		snprintf(str, sizeof(str), "port:%d", dev - 0x10);
+	else if (dev == 0x1b)
 		return "global:1";
-	else if (port == 0x1c)
+	else if (dev == 0x1c)
 		return "global:2";
-	else if (port == 0x1d)
+	else if (dev == 0x1d)
 		return "global:3";
 	else
-		snprintf(str, sizeof(str), "port:RESERVED(%#.2x)", port);
+		snprintf(str, sizeof(str), "port:RESERVED(%#.2x)", dev);
 
 	return str;
 }
 
 static void print_mv6_heading(const struct loc *loc, int indent)
 {
-	int dev = loc_c45_dev(loc), port = loc_c45_port(loc);
+	int port = loc_c45_port(loc), dev = loc_c45_dev(loc);
 	struct loc loc_id = *loc;
 	uint16_t id;
 
-	loc_id.phy_id = mdio_phy_id_c45(0x10, dev);
+	loc_id.phy_id = mdio_phy_id_c45(port, 0x10);
 	loc_id.reg = 3;
 	id = phy_read(&loc_id);
 
 	printf("%*smv6: model:%s dev:%d %s\n", indent, "",
-	       mv6_model_str(id), dev, mv6_port_str(port));
+	       mv6_model_str(id), port /* [sic] */, mv6_dev_str(dev));
 }
 
 static void mv6_port_ps(uint16_t val, int indent)
@@ -271,7 +271,7 @@ int print_mv6_port(const struct loc *loc, int indent, struct mv6_port_desc *pd)
 
 int print_mv6tool(const struct loc *loc, int indent)
 {
-	int port = loc_c45_port(loc);
+	int dev = loc_c45_dev(loc);
 	struct mv6_port_desc *pd = NULL;
 
 	if (!loc_is_c45(loc)) {
@@ -281,17 +281,17 @@ int print_mv6tool(const struct loc *loc, int indent)
 
 	print_mv6_heading(loc, indent);
 
-	if (port < 0xf)
+	if (dev < 0xf)
 		return print_phytool(loc, indent + INDENT);
-	else if (port == 0xf)
+	else if (dev == 0xf)
 		pd = &mv6_pd_serdes;
-	else if (port < 0x1b)
+	else if (dev < 0x1b)
 		pd = &mv6_pd_port;
-	else if (port == 0x1b)
+	else if (dev == 0x1b)
 		pd = &mv6_pd_g1;
-	else if (port == 0x1c)
+	else if (dev == 0x1c)
 		pd = &mv6_pd_g2;
-	else if (port == 0x1d)
+	else if (dev == 0x1d)
 		pd = &mv6_pd_g3;
 
 	return print_mv6_port(loc, indent + INDENT, pd);
