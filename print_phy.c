@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <linux/mdio.h>
 #include <net/if.h>
@@ -37,11 +38,11 @@ void print_bool(const char *name, int on)
 
 void print_attr_name(const char *name, int indent)
 {
-	int start, end, len;
+	int len;
 
-	printf("%*s%n%s:%n", indent, "", &start, name, &end);
+	printf("%*s%s:", indent, "", name);
 
-	len = end - start;
+	len = strlen(name) + 1;
 	printf("%*s", (len > 16) ? 0 : 16 - len, "");
 }
 
