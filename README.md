@@ -10,15 +10,17 @@ Usage
     phytool write IFACE/ADDR/REG <0-0xffff>
     phytool print IFACE/ADDR[/REG]
 
-    where
+    Clause 22:
 
-    ADDR := C22 | C45
-    C22  := <0-0x1f>
-    C45  := <0-0x1f>:<0-0x1f>
+    ADDR := <0-0x1f>
     REG  := <0-0x1f>
 
-Note: Not all MDIO drivers support the `port:device` Clause 45 address
-      format.
+    Clause 45 (not supported by all MDIO drivers):
+
+    ADDR := PORT:DEV
+    PORT := <0-0x1f>
+    DEV  := <0-0x1f>
+    REG  := <0-0xffff>
 
 The `read` and `write` commands are simple register level
 accessors. The `print` command will pretty-print a register. When
