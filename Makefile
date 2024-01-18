@@ -31,12 +31,13 @@ clean:
 	@rm -f $(TARGET)
 
 dist:
-	@echo "Creating $(ARCHIVE), with $(ARCHIVE).md5 in parent dir ..."
+	@echo "Creating $(ARCHIVE), with $(ARCHIVE).sha512 in parent dir ..."
 	@git archive --format=tar --prefix=$(PKG)/ v$(VERSION) | xz >../$(ARCHIVE)
-	@(cd .. && md5sum $(ARCHIVE) > $(ARCHIVE).md5)
+	@(cd .. && sha5125sum $(ARCHIVE) > $(ARCHIVE).sha512)
 
 install: phytool
-	@cp phytool $(DESTDIR)/$(PREFIX)/bin/
+	@mkdir -p $(DESTDIR)/$(PREFIX)/bin/
+	@cp -p phytool $(DESTDIR)/$(PREFIX)/bin/
 	@for app in $(APPLETS); do \
 		ln -sf phytool $(DESTDIR)/$(PREFIX)/bin/$$app; \
 	done
