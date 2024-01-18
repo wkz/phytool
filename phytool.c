@@ -275,13 +275,19 @@ static int mv6tool_parse_loc_if(char *dev, char *addr, char *reg,
 
 	strncpy(loc->ifnam, dev, IFNAMSIZ - 1);
 
-	asprintf(&path, "/sys/class/net/%s/phys_switch_id", dev);
+	err = asprintf(&path, "/sys/class/net/%s/phys_switch_id", dev);
+	if (err == -1)
+		return -ENOMEM;
+
 	err = sysfs_readu(path, &phy_port);
 	free(path);
 	if (err)
 		return -ENOSYS;
 
-	asprintf(&path, "/sys/class/net/%s/phys_port_id", dev);
+	err = asprintf(&path, "/sys/class/net/%s/phys_port_id", dev);
+	if (err == -1)
+		return -ENOMEM;
+
 	err = sysfs_readu(path, &phy_dev);
 	free(path);
 	if (err)
