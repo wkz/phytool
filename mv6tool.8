@@ -1,0 +1,77 @@
+.TH MV6TOOL "8" "January 2024" "" "System Management Commands"
+.SH NAME
+.B mv6tool
+\- Marvell Link Street register access
+.SH SYNOPSIS
+.B mv6tool read
+.IR LOCATION / REG
+.P
+.B mv6tool write
+.IR LOCATION / REG
+.RI < 0-0xffff >
+.P
+.B mv6tool print
+.IR LOCATION [/ REG ]
+.P
+.B mv6tool print
+.IR IFACE
+.P
+where
+.TP
+.I LOCATION
+:=
+.IR IFACE /< port | phy >
+|
+.IR DEV /< ADDR | phyN | portN | globalG | serdes >
+.TP
+DEV
+:=
+.RI < 0\-0x1f >
+.TP
+ADDR
+:=
+.RI < 0\-0x1f >
+.TP
+N
+:=
+.RI < 0\-0xa >
+.TP
+G
+:=
+.RI < 0\-2 >
+.TP
+REG
+:=
+.RI < 0\-0x1f >
+.SH DESCRIPTION
+The
+.B read
+and
+.B write
+commands are simple register level accessors.
+The
+.B print
+command will pretty-print a register.
+When using the
+.B print
+command, the register is optional.
+If left out, the most common registers will be shown.
+.SH EXAMPLES
+.P
+.EX
+.B mv6tool\ read\ cpu0/port/0
+.EE
+.P
+.EX
+.B mv6tool\ write\ 1/global1/2\ 0x1337
+.EE
+.P
+.EX
+.B mv6tool\ print\ eth2\-1
+.EE
+.SH "REPORTING BUGS"
+.UR https://github.com/wkz/phytool/issues
+Bug report address
+.UE
+.SH "SEE ALSO"
+.BR phytool (8)

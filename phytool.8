@@ -1,0 +1,68 @@
+.TH PHYTOOL "8" "January 2024" "" "System Management Commands"
+.SH NAME
+.B phytool
+\- Linux MDIO register access
+.SH SYNOPSIS
+.B phytool read
+.IR IFACE / ADDR / REG
+.P
+.B phytool write
+.IR IFACE / ADDR / REG
+.RI < 0\-0xffff >
+.P
+.B phytool print
+.IR IFACE / ADDR [/ REG ]
+.P
+where
+.TP
+.I ADDR
+:=
+.IR C22 \ |\  C45
+.TP
+.I C22
+:=
+.RI < 0\-0x1f >
+.TP
+.I C45
+:=
+.RI < 0\-0x1f >:< 0\-0x1f >
+.TP
+.I REG
+:=
+.RI < 0\-0x1f >
+.SH DESCRIPTION
+The
+.B read
+and
+.B write
+commands are simple register level accessors.
+The
+.B print
+command will pretty-print a register.
+When using the
+.B print
+command, the register is optional.
+If left out, the most common registers will be shown.
+.SH NOTES
+Not all MDIO drivers support the
+.IB port : device
+Clause 45 address format.
+.SH EXAMPLES
+.P
+.EX
+.B phytool\ read\ eth0/0:3/1
+.EE
+.P
+.EX
+.B phytool\ write\ eth0/0xa/0\ 0x1140
+.EE
+.P
+.EX
+.B phytool\ print\ eth0/0x1c
+.EE
+.SH "REPORTING BUGS"
+.UR https://github.com/wkz/phytool/issues
+Bug report address
+.UE
+.SH "SEE ALSO"
+.BR mv6tool (8)
