@@ -356,7 +356,7 @@ static int phytool_read(struct applet *a, int argc, char **argv)
 	if (val < 0)
 		return 1;
 
-	printf("%#.4x\n", val);
+	printf("0x%.4x\n", val);
 	return 0;
 }
 
