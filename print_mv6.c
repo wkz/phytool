@@ -39,7 +39,7 @@ static const char *mv6_model_str(uint16_t id)
 		return "mv88e6352";
 	}
 
-	snprintf(str, sizeof(str), "UNKNOWN(%#.4x)", id);
+	snprintf(str, sizeof(str), "UNKNOWN(0x%.4x)", id);
 	return str;
 }
 
@@ -60,7 +60,7 @@ static const char *mv6_dev_str(uint16_t dev)
 	else if (dev == 0x1d)
 		return "global:3";
 	else
-		snprintf(str, sizeof(str), "port:RESERVED(%#.2x)", dev);
+		snprintf(str, sizeof(str), "port:RESERVED(0x%.2x)", dev);
 
 	return str;
 }
@@ -89,7 +89,7 @@ static void mv6_port_ps(uint16_t val, int indent)
 		mult--;
 	}
 
-	printf("%*smv6: reg:PS(0x00) val:%#.4x\n", indent, "", val);
+	printf("%*smv6: reg:PS(0x00) val:0x%.4x\n", indent, "", val);
 
 	print_attr_name("flags", indent + INDENT);
 	print_bool("pause-en", val & 0x8000);
@@ -116,7 +116,7 @@ static void mv6_port_ps(uint16_t val, int indent)
 	print_attr_name("speed", indent + INDENT);
 	printf("%d-%s\n", speed, (val & 0x0400)? "full" : "half");
 	print_attr_name("mode", indent + INDENT);
-	printf("%#x\n", val & 0xf);
+	printf("0x%x\n", val & 0xf);
 }
 
 static const char *mv6_egress_mode_str[] = {
@@ -164,7 +164,7 @@ static void mv6_port_pc(uint16_t val, int indent)
 		mult--;
 	}
 
-	printf("%*smv6: reg:PC(0x04) val:%#.4x\n", indent, "", val);
+	printf("%*smv6: reg:PC(0x04) val:0x%.4x\n", indent, "", val);
 
 	print_attr_name("flags", indent + INDENT);
 	print_bool("router-header", val & 0x0800);
@@ -243,7 +243,7 @@ int mv6_port_one(const struct loc *loc, int indent, struct mv6_port_desc *pd)
 		return val;
 
 	if (loc->reg > 0x1f || !pd || !pd->printer[loc->reg])
-		printf("%*smv6: reg:%#.2x val:%#.4x\n", indent, "",
+		printf("%*smv6: reg:0x%.2x val:0x%.4x\n", indent, "",
 		       loc->reg, val);
 	else
 		pd->printer[loc->reg](val, indent);

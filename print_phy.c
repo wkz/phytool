@@ -55,7 +55,7 @@ static void ieee_bmcr(uint16_t val, int indent)
 	if (val & BMCR_SPEED1000)
 		speed = 1000;
 
-	printf("%*sieee-phy: reg:BMCR(0x00) val:%#.4x\n", indent, "", val);
+	printf("%*sieee-phy: reg:BMCR(0x00) val:0x%.4x\n", indent, "", val);
 
 	print_attr_name("flags", indent + INDENT);
 	print_bool("reset", val & BMCR_RESET);
@@ -85,7 +85,7 @@ static void ieee_bmcr(uint16_t val, int indent)
 
 static void ieee_bmsr(uint16_t val, int indent)
 {
-	printf("%*sieee-phy: reg:BMSR(0x01) val:%#.4x\n", indent, "", val);
+	printf("%*sieee-phy: reg:BMSR(0x01) val:0x%.4x\n", indent, "", val);
 
 	print_attr_name("capabilities", indent + INDENT);
 	print_bool("100-b4", val & BMSR_100BASE4);
@@ -145,7 +145,7 @@ static int ieee_one(const struct loc *loc, int indent)
 		return val;
 
 	if (loc->reg > 0x1f || !ieee_reg_printers[loc->reg])
-		printf("%*sieee-phy: reg:%#.2x val:%#.4x\n", indent, "",
+		printf("%*sieee-phy: reg:0x%.2x val:0x%.4x\n", indent, "",
 		       loc->reg, val);
 	else
 		ieee_reg_printers[loc->reg](val, indent);
@@ -160,7 +160,7 @@ int print_phy_ieee(const struct loc *loc, int indent)
 	if (loc->reg != REG_SUMMARY)
 		return ieee_one(loc, indent);
 
-	printf("%*sieee-phy: id:%#.8x\n\n", indent, "", phy_id(loc));
+	printf("%*sieee-phy: id:0x%.8x\n\n", indent, "", phy_id(loc));
 
 	loc_sum.reg = 0;
 	ieee_one(&loc_sum, indent + INDENT);
