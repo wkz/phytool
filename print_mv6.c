@@ -119,6 +119,17 @@ static void mv6_port_ps(uint16_t val, int indent)
 	printf("0x%x\n", val & 0xf);
 }
 
+static void mv6_port_dflt_vid(uint16_t val, int indent)
+{
+	printf("%*smv6: reg:VLAN ID(0x07) val:%#.4x\n", indent, "", val);
+	print_attr_name("flags", indent + INDENT);
+	print_bool("Force Default VID", val & 0x1000);
+	putchar(' ');
+	putchar('\n');
+	print_attr_name("Default VID", indent + INDENT);
+	printf ("%d\n", val & 0xFFF);
+}
+
 static const char *mv6_egress_mode_str[] = {
 	"00, unmodified",
 	"01, untagged",
@@ -201,13 +212,16 @@ struct mv6_port_desc {
 };
 
 struct mv6_port_desc mv6_pd_port = {
-	.summary = { 0, 4, -1 },
+	.summary = { 0, 4, 7, -1 },
 	.printer = {
 		mv6_port_ps,
 		NULL,
 		NULL,
 		NULL,
 		mv6_port_pc,
+		NULL,
+		NULL,
+		mv6_port_dflt_vid,
 	},
 };
 
